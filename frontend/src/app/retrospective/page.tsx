@@ -10,7 +10,7 @@ export default function RetrospectivePage() {
   const store = useDailyStore();
   const { cards, nlpResult, tasks, setRetrospective } = store;
 
-  const [checked, setChecked] = useState<boolean[]>([]);
+  const [checked, setChecked] = useState<boolean[]>(() => tasks.map(() => false));
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,11 +18,8 @@ export default function RetrospectivePage() {
   useEffect(() => {
     if (cards.length === 0) {
       router.replace("/");
-    } else if (checked.length === 0) {
-      // Initialize only when not yet set — don't reset if already checking
-      setChecked(tasks.map(() => false));
     }
-  }, [cards, tasks, router, checked.length]);
+  }, [cards, router]);
 
   function toggle(i: number) {
     setChecked((prev) => prev.map((v, idx) => idx === i ? !v : v));
