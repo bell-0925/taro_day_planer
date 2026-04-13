@@ -12,13 +12,21 @@ from prompts import (
 
 load_dotenv("GITHUB_TOKEN.env")
 
-client = OpenAI(
-    base_url="https://models.inference.ai.azure.com",
-    api_key=os.getenv("GITHUB_TOKEN")
-)
+_github_token = os.getenv("GITHUB_TOKEN", "")
+try:
+    client = OpenAI(
+        base_url="https://models.inference.ai.azure.com",
+        api_key=_github_token or "placeholder",  # 빈 값이면 서버 크래시 방지
+    )
+except Exception as e:
+    import warnings
+    warnings.warn(f"OpenAI 클라이언트 초기화 실패: {e}")
+    client = None
 
 
 def _call_llm(system_prompt, user_prompt, temperature=0.7):
+    if client is None:
+        raise RuntimeError("LLM 클라이언트가 초기화되지 않았습니다. GITHUB_TOKEN을 확인하세요.")
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         temperature=temperature,
