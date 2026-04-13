@@ -6,25 +6,33 @@ B한테 넘길 nlp_result 딕셔너리 생성
 
 import json
 import os
-from keybert import KeyBERT
-from transformers import pipeline
-from sentence_transformers import SentenceTransformer
 
 # ─────────────────────────────────────────────
-# 모델 초기화 (파일 import 시 한 번만 로드)
+# 모델 초기화 — 첫 요청 시 지연 로드 (서버 시작 속도 확보)
 # ─────────────────────────────────────────────
 
-# KeyBERT — 한국어 포함 다국어 모델
-from sentence_transformers import SentenceTransformer
-st_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-kw_model = KeyBERT(model=st_model)
+_kw_model = None
+_sentiment_pipeline = None
 
-# 감성 분석 — snunlp/KR-ELECTRA (한국어 특화)
-sentiment_pipeline = pipeline(
-    "text-classification",
-    model="lxyuan/distilbert-base-multilingual-cased-sentiments-student",
-    top_k=None  # 전체 레이블 점수 반환
-)
+def _get_kw_model():
+    global _kw_model
+    if _kw_model is None:
+        from keybert import KeyBERT
+        from sentence_transformers import SentenceTransformer
+        st = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+        _kw_model = KeyBERT(model=st)
+    return _kw_model
+
+def _get_sentiment_pipeline():
+    global _sentiment_pipeline
+    if _sentiment_pipeline is None:
+        from transformers import pipeline
+        _sentiment_pipeline = pipeline(
+            "text-classification",
+            model="lxyuan/distilbert-base-multilingual-cased-sentiments-student",
+            top_k=None,
+        )
+    return _sentiment_pipeline
 
 
 # ─────────────────────────────────────────────
@@ -48,18 +56,18 @@ def extract_keywords(text: str, top_n: int = 5) -> list[str]:
     # 한 글자 단어 제거
     nouns = [n for n in nouns if len(n) > 1]
     noun_text = " ".join(nouns)
-    
+
     if not noun_text.strip():
         return nouns[:top_n]
-    
-    results = kw_model.extract_keywords(
+
+    results = _get_kw_model().extract_keywords(
         noun_text,
-        keyphrase_ngram_range=(1, 1),  # 명사만 쓰니까 1단어로
+        keyphrase_ngram_range=(1, 1),
         stop_words=None,
         top_n=top_n,
         use_mmr=True,
         diversity=0.5,
-        candidates=None
+        candidates=None,
     )
     return [kw for kw, score in results]
 
@@ -81,7 +89,7 @@ def analyze_sentiment(text: str) -> dict:
             "sentiment_label": str ("positive" or "negative")
         }
     """
-    results = sentiment_pipeline(text)[0]  # 리스트 안의 첫 번째 결과
+    results = _get_sentiment_pipeline()(text)[0]  # 리스트 안의 첫 번째 결과
     
     # 레이블별 점수 추출
     scores = {item["label"]: item["score"] for item in results}
