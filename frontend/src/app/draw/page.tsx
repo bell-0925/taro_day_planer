@@ -16,14 +16,18 @@ export default function DrawPage() {
   const [revealed, setRevealed] = useState<boolean[]>([false, false, false]);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   async function handleShuffle() {
     setLoadingMsg("카드를 섞는 중...");
     setLoading(true);
+    setError(null);
     try {
       const { cards } = await drawCards();
       setDeck(cards);
       setRevealed([false, false, false]); // 섞으면 다시 뒤집힌 상태로
+    } catch (e) {
+      setError(`카드 섞기 실패: ${e instanceof Error ? e.message : "서버 연결 오류"}`);
     } finally {
       setLoading(false);
     }
@@ -70,6 +74,13 @@ export default function DrawPage() {
             ? "카드가 모두 공개됐습니다"
             : "카드를 탭하여 한 장씩 공개하세요"}
       </p>
+
+      {error && (
+        <p className="text-sm text-center rounded-xl px-4 py-3"
+           style={{ color: "#f87171", background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
+          {error}
+        </p>
+      )}
 
       {/* 카드 3장 */}
       <div className="flex justify-center gap-4 my-4">
