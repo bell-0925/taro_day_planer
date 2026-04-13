@@ -48,7 +48,10 @@ def _parse_llm(text: str) -> tuple[str, str]:
 @router.post("/advice", response_model=AdviceResponse)
 def advice(req: AdviceRequest):
     cards_dict = [c.model_dump() for c in req.cards]
-    nlp_dict = req.nlp_result.model_dump()
+    try:
+        nlp_dict = req.nlp_result.model_dump()
+    except Exception:
+        nlp_dict = {"keywords": [], "sentiment_score": 0.5, "sentiment_label": "neutral"}
     llm_text = generate_advice(cards_dict, req.tasks, req.condition, nlp_dict)
     summary, body = _parse_llm(llm_text)
     return AdviceResponse(summary=summary, advice=body)

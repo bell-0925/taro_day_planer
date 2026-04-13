@@ -49,9 +49,12 @@ def fortune(req: FortuneRequest):
     if len(req.cards) < 3:
         raise HTTPException(400, "카드 3장이 필요합니다")
     cards_dict = [c.model_dump() for c in req.cards]
-    # 카드 3장의 meaning을 합쳐서 NLP 분석
-    combined = {"meaning": " ".join(c["meaning"] for c in cards_dict)}
-    nlp = preprocess_card(combined)
+    # 카드 3장의 meaning을 합쳐서 NLP 분석 (모델 로드 실패 시 폴백)
+    try:
+        combined = {"meaning": " ".join(c["meaning"] for c in cards_dict)}
+        nlp = preprocess_card(combined)
+    except Exception:
+        nlp = {"keywords": [], "sentiment_score": 0.5, "sentiment_label": "neutral"}
     llm_text = generate_fortune(cards_dict, nlp)
     summary, body = _parse_llm(llm_text)
     return FortuneResponse(

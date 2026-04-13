@@ -21,6 +21,7 @@ export async function fetchFortune(cards: DrawnCard[]) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ cards }),
+    signal: AbortSignal.timeout(120_000), // 2분 — 첫 요청 시 모델 로딩 대기
   });
   if (!res.ok) throw new Error("운세 생성 실패");
   return res.json() as Promise<{ summary: string; fortune: string; nlp_result: NlpResult }>;

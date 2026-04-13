@@ -40,13 +40,16 @@ export default function DrawPage() {
 
   async function handleConfirm() {
     if (!allRevealed) return;
-    setLoadingMsg("운세를 읽는 중...");
+    setLoadingMsg("운세를 읽는 중... (처음엔 30초 정도 걸릴 수 있어요)");
     setLoading(true);
+    setError(null);
     setCards(deck);
     try {
       const result = await fetchFortune(deck);
       setFortune(result.summary, result.fortune, result.nlp_result);
       router.push("/fortune");
+    } catch (e) {
+      setError(`운세 생성 실패: ${e instanceof Error ? e.message : "서버 오류"}`);
     } finally {
       setLoading(false);
     }
