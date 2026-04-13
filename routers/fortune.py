@@ -48,10 +48,15 @@ def fortune(req: FortuneRequest):
     if len(req.cards) < 3:
         raise HTTPException(400, "카드 3장이 필요합니다")
     cards_dict = [c.model_dump() for c in req.cards]
-    # Railway 메모리 제한으로 ML 모델 대신 LLM 직접 호출
     nlp = {"keywords": [], "sentiment_score": 0.5, "sentiment_label": "neutral"}
-    llm_text = generate_fortune(cards_dict, nlp)
-    summary, body = _parse_llm(llm_text)
+    try:
+        llm_text = generate_fortune(cards_dict, nlp)
+        summary, body = _parse_llm(llm_text)
+    except Exception as e:
+        # LLM 호출 실패 시 카드 이름 기반 폴백
+        card_names = ", ".join(c["name"] for c in cards_dict)
+        summary = f"{card_names} 카드의 하루"
+        body = f"오늘의 카드는 {card_names}입니다. 카드의 에너지를 따라 하루를 보내세요. (LLM 오류: {e})"
     return FortuneResponse(
         summary=summary,
         fortune=body,

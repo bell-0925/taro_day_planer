@@ -33,7 +33,8 @@ def _call_llm(system_prompt, user_prompt, temperature=0.7):
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_prompt}
-        ]
+        ],
+        timeout=60,  # 60초 타임아웃
     )
     return completion.choices[0].message.content
 
