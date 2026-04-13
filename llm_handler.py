@@ -9,31 +9,37 @@ from prompts import (
     RETROSPECTIVE_SYSTEM, RETROSPECTIVE_USER
 )
 
-load_dotenv("GEMINI_API_KEY.env")
+load_dotenv(".env")
 
-_gemini_key = os.getenv("GEMINI_API_KEY", "")
+_github_token = os.getenv("GITHUB_TOKEN", "")
 
 try:
-    import google.generativeai as genai
-    genai.configure(api_key=_gemini_key or "placeholder")
-    _model = genai.GenerativeModel("gemini-3.1-flash-lite")
-    _gemini_ready = bool(_gemini_key)
+    from openai import OpenAI
+    _client = OpenAI(
+        base_url="https://models.inference.ai.azure.com",
+        api_key=_github_token or "placeholder",
+    )
+    _github_ready = bool(_github_token)
 except Exception as e:
     import warnings
-    warnings.warn(f"Gemini 클라이언트 초기화 실패: {e}")
-    _model = None
-    _gemini_ready = False
+    warnings.warn(f"GitHub Models 클라이언트 초기화 실패: {e}")
+    _client = None
+    _github_ready = False
 
 
 def _call_llm(system_prompt, user_prompt, temperature=0.7):
-    if not _gemini_ready or _model is None:
-        raise RuntimeError("Gemini 클라이언트가 초기화되지 않았습니다. GEMINI_API_KEY를 확인하세요.")
-    prompt = f"{system_prompt}\n\n{user_prompt}"
-    response = _model.generate_content(
-        prompt,
-        generation_config={"temperature": temperature, "max_output_tokens": 1024},
+    if not _github_ready or _client is None:
+        raise RuntimeError("GitHub Models 클라이언트가 초기화되지 않았습니다. GITHUB_TOKEN을 확인하세요.")
+    response = _client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_prompt},
+        ],
+        temperature=temperature,
+        max_tokens=1024,
     )
-    return response.text
+    return response.choices[0].message.content
 
 
 def _cards_to_text(cards):
