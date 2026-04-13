@@ -1,6 +1,5 @@
 # llm_handler.py
 
-from openai import OpenAI
 from dotenv import load_dotenv
 import os
 from prompts import (
@@ -10,33 +9,31 @@ from prompts import (
     RETROSPECTIVE_SYSTEM, RETROSPECTIVE_USER
 )
 
-load_dotenv("GITHUB_TOKEN.env")
+load_dotenv("GEMINI_API_KEY.env")
 
-_github_token = os.getenv("GITHUB_TOKEN", "")
+_gemini_key = os.getenv("GEMINI_API_KEY", "")
+
 try:
-    client = OpenAI(
-        base_url="https://models.inference.ai.azure.com",
-        api_key=_github_token or "placeholder",  # 빈 값이면 서버 크래시 방지
-    )
+    import google.generativeai as genai
+    genai.configure(api_key=_gemini_key or "placeholder")
+    _model = genai.GenerativeModel("gemini-1.5-flash")
+    _gemini_ready = bool(_gemini_key)
 except Exception as e:
     import warnings
-    warnings.warn(f"OpenAI 클라이언트 초기화 실패: {e}")
-    client = None
+    warnings.warn(f"Gemini 클라이언트 초기화 실패: {e}")
+    _model = None
+    _gemini_ready = False
 
 
 def _call_llm(system_prompt, user_prompt, temperature=0.7):
-    if client is None:
-        raise RuntimeError("LLM 클라이언트가 초기화되지 않았습니다. GITHUB_TOKEN을 확인하세요.")
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        temperature=temperature,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt}
-        ],
-        timeout=60,  # 60초 타임아웃
+    if not _gemini_ready or _model is None:
+        raise RuntimeError("Gemini 클라이언트가 초기화되지 않았습니다. GEMINI_API_KEY를 확인하세요.")
+    prompt = f"{system_prompt}\n\n{user_prompt}"
+    response = _model.generate_content(
+        prompt,
+        generation_config={"temperature": temperature, "max_output_tokens": 1024},
     )
-    return completion.choices[0].message.content
+    return response.text
 
 
 def _cards_to_text(cards):

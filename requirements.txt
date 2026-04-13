@@ -2,6 +2,7 @@
 
 # LLM
 openai
+google-generativeai
 
 # Env var
 python-dotenv
