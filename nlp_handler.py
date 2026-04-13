@@ -31,12 +31,20 @@ sentiment_pipeline = pipeline(
 # 1. 키워드 추출
 # ─────────────────────────────────────────────
 
-from konlpy.tag import Okt
-okt = Okt()
+# KonlPy는 JVM이 필요 — 없는 환경(Railway 등)에서는 폴백 사용
+try:
+    from konlpy.tag import Okt
+    okt = Okt()
+except Exception:
+    okt = None  # JVM 없음 — 단순 공백 분리로 대체
 
 def extract_keywords(text: str, top_n: int = 5) -> list[str]:
     # 형태소 분석으로 명사만 추출
-    nouns = okt.nouns(text)
+    if okt is not None:
+        nouns = okt.nouns(text)
+    else:
+        # JVM 없을 때 폴백: 공백 분리 후 2글자 이상 단어
+        nouns = [w for w in text.split() if len(w) > 1]
     # 한 글자 단어 제거
     nouns = [n for n in nouns if len(n) > 1]
     noun_text = " ".join(nouns)
