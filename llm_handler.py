@@ -16,7 +16,7 @@ _gemini_key = os.getenv("GEMINI_API_KEY", "")
 try:
     import google.generativeai as genai
     genai.configure(api_key=_gemini_key or "placeholder")
-    _model = genai.GenerativeModel("gemini-2.0-flash")
+    _model = genai.GenerativeModel("gemini-2.0-flash-lite")
     _gemini_ready = bool(_gemini_key)
 except Exception as e:
     import warnings
