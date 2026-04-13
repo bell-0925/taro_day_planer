@@ -13,6 +13,7 @@ export default function DrawPage() {
   const router = useRouter();
   const { setCards, setFortune } = useDailyStore();
   const [deck, setDeck] = useState<DrawnCard[]>([]);
+  const [revealed, setRevealed] = useState<boolean[]>([false, false, false]);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
 
@@ -22,13 +23,19 @@ export default function DrawPage() {
     try {
       const { cards } = await drawCards();
       setDeck(cards);
+      setRevealed([false, false, false]); // 섞으면 다시 뒤집힌 상태로
     } finally {
       setLoading(false);
     }
   }
 
+  function handleFlip(i: number) {
+    if (deck.length === 0) return; // 아직 섞기 전이면 무시
+    setRevealed((prev) => prev.map((v, idx) => (idx === i ? true : v)));
+  }
+
   async function handleConfirm() {
-    if (deck.length === 0) return;
+    if (!allRevealed) return;
     setLoadingMsg("운세를 읽는 중...");
     setLoading(true);
     setCards(deck);
@@ -41,6 +48,8 @@ export default function DrawPage() {
     }
   }
 
+  const allRevealed = deck.length > 0 && revealed.every(Boolean);
+
   if (loading) return <LoadingSpinner message={loadingMsg} />;
 
   return (
@@ -50,22 +59,28 @@ export default function DrawPage() {
         <h2 className="text-lg font-bold">오늘의 카드 뽑기</h2>
       </div>
 
-      <p className="text-xs text-center" style={{ color: "var(--tarot-muted)" }}>
-        {deck.length === 0 ? "카드를 섞어주세요" : "카드를 확인하세요"}
-      </p>
-
       <p className="text-sm text-center" style={{ color: "var(--tarot-text)" }}>
         마음을 가라앉히고 3장의 카드를<br />직관에 따라 선택하세요
       </p>
 
+      <p className="text-xs text-center" style={{ color: "var(--tarot-muted)" }}>
+        {deck.length === 0
+          ? "먼저 카드를 섞어주세요"
+          : allRevealed
+            ? "카드가 모두 공개됐습니다"
+            : "카드를 탭하여 한 장씩 공개하세요"}
+      </p>
+
+      {/* 카드 3장 */}
       <div className="flex justify-center gap-4 my-4">
         {POSITIONS.map((pos, i) => (
           <TarotCard
             key={pos}
             position={pos}
             card={deck[i]}
-            selected={deck.length > 0}
-            faceDown={deck.length === 0}
+            selected={revealed[i]}
+            faceDown={!revealed[i]}
+            onClick={() => handleFlip(i)}
           />
         ))}
       </div>
@@ -77,15 +92,11 @@ export default function DrawPage() {
       </button>
 
       <button onClick={handleConfirm}
-              disabled={deck.length === 0}
+              disabled={!allRevealed}
               className="w-full py-4 rounded-full font-bold text-white disabled:opacity-40"
               style={{ background: "var(--tarot-accent)" }}>
         이 카드로 오늘을 시작할게요
       </button>
-
-      <p className="text-xs text-center" style={{ color: "var(--tarot-muted)" }}>
-        카드를 탭하여 선택하세요
-      </p>
     </div>
   );
 }
